@@ -13,21 +13,17 @@
         
         <source.compiler.version>1.6</source.compiler.version>
         <target.compiler.version>1.6</target.compiler.version>
-        
-        <maven.compiler.plugin.version>2.3.2</maven.compiler.plugin.version>
-        <maven.resources.plugin.version>2.4</maven.resources.plugin.version>
-        <maven.surefire.plugin.version>2.9</maven.surefire.plugin.version>
-        
+
         <kryo.version>4.0.0</kryo.version>
         <high-scale-lib.version>1.1.4</high-scale-lib.version>
         <aws.sdk.version>1.11.33</aws.sdk.version>
+        <httpclient.version>4.5.2</httpclient.version>
         <log4j.version>1.2.17</log4j.version>
         <junit.version>4.11</junit.version>
         
     </properties>
   
   	<build>
-        <finalName>samba</finalName>
         <plugins> 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -49,11 +45,26 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
             </plugin>
+    		<plugin>
+        		<groupId>org.apache.maven.plugins</groupId>
+        		<artifactId>maven-shade-plugin</artifactId>
+        		<executions>
+          			<execution>
+            			<phase>package</phase>
+            			<goals>
+              				<goal>shade</goal>
+            			</goals>
+          			</execution>
+        		</executions>
+      		</plugin>
         </plugins>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
+                <excludes>
+                	<exclude>**/aws-credentials.properties</exclude>
+                </excludes>
             </resource>
         </resources>
     </build>
@@ -79,6 +90,11 @@
             <artifactId>log4j</artifactId>
             <version>${log4j.version}</version>
         </dependency>
+        <dependency>
+    		<groupId>org.apache.httpcomponents</groupId>
+    		<artifactId>httpclient</artifactId>
+    		<version>${httpclient.version}</version>
+		</dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
