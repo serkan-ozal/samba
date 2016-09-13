@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicLongArray;
 import org.apache.log4j.Logger;
 
 import tr.com.serkanozal.samba.cache.SambaCache;
+import tr.com.serkanozal.samba.cache.SambaCacheConsistencyModel;
 import tr.com.serkanozal.samba.cache.SambaCacheType;
 import tr.com.serkanozal.samba.cache.impl.SambaGlobalCache.CacheChangeListener;
 
@@ -62,6 +63,16 @@ public class SambaTieredCache implements SambaCache {
     @Override
     public SambaCacheType getType() {
         return SambaCacheType.TIERED;
+    }
+    
+    @Override
+    public SambaCacheConsistencyModel getConsistencyModel() {
+        return SambaCacheConsistencyModel.EVENTUAL_CONSISTENCY;
+    }
+    
+    @Override
+    public boolean supportInvalidation() {
+        return true;
     }
     
     @SuppressWarnings("unchecked")

@@ -65,6 +65,7 @@ import com.esotericsoftware.kryo.io.FastInput;
 import com.esotericsoftware.kryo.io.FastOutput;
 
 import tr.com.serkanozal.samba.cache.SambaCache;
+import tr.com.serkanozal.samba.cache.SambaCacheConsistencyModel;
 import tr.com.serkanozal.samba.cache.SambaCacheType;
 
 public class SambaGlobalCache implements SambaCache {
@@ -407,6 +408,16 @@ public class SambaGlobalCache implements SambaCache {
     @Override
     public SambaCacheType getType() {
         return SambaCacheType.GLOBAL;
+    }
+    
+    @Override
+    public SambaCacheConsistencyModel getConsistencyModel() {
+        return SambaCacheConsistencyModel.STRONG_CONSISTENCY;
+    }
+    
+    @Override
+    public boolean supportInvalidation() {
+        return false;
     }
     
     @SuppressWarnings("unchecked")

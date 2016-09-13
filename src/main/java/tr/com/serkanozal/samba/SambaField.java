@@ -18,6 +18,7 @@ package tr.com.serkanozal.samba;
 import java.util.UUID;
 
 import tr.com.serkanozal.samba.cache.SambaCache;
+import tr.com.serkanozal.samba.cache.SambaCacheConsistencyModel;
 import tr.com.serkanozal.samba.cache.SambaCacheProvider;
 import tr.com.serkanozal.samba.cache.SambaCacheType;
 
@@ -42,14 +43,26 @@ public class SambaField<T> {
     }
 
     public SambaField(String id, SambaCacheType cacheType) {
+        this(id, SambaCacheProvider.getCache(cacheType));
+    }
+    
+    public SambaField(String id, SambaCache cache) {
         this.id = id;
-        this.cache = SambaCacheProvider.getCache(cacheType);
-        this.proxyInvalidationAware = cacheType == SambaCacheType.GLOBAL ? false : true;
-        this.valueProxy = proxyInvalidationAware ? EMPTY_PROXY : null;
+        this.cache = cache;
+        this.proxyInvalidationAware = cache.supportInvalidation();
+        this.valueProxy = EMPTY_PROXY;
     }
     
     public String getId() {
         return id;
+    }
+    
+    public SambaCache getCache() {
+        return cache;
+    }
+    
+    public SambaCacheConsistencyModel getConsistencyModel() {
+        return cache.getConsistencyModel();
     }
     
     @SuppressWarnings("unchecked")

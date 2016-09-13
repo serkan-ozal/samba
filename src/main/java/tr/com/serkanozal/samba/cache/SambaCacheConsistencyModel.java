@@ -15,14 +15,9 @@
  */
 package tr.com.serkanozal.samba.cache;
 
-public interface SambaCache {
+public enum SambaCacheConsistencyModel {
 
-    SambaCacheType getType();
-    SambaCacheConsistencyModel getConsistencyModel();
-    boolean supportInvalidation();
-    
-    <V> V get(String key);
-    void put(String key, Object value);
-    void remove(String key);
+    STRONG_CONSISTENCY,
+    EVENTUAL_CONSISTENCY;
     
 }

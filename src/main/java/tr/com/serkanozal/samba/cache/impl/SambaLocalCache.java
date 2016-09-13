@@ -20,6 +20,7 @@ import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
 import tr.com.serkanozal.samba.SambaValueProxy;
 import tr.com.serkanozal.samba.cache.SambaCache;
+import tr.com.serkanozal.samba.cache.SambaCacheConsistencyModel;
 import tr.com.serkanozal.samba.cache.SambaCacheType;
 
 public class SambaLocalCache implements SambaCache {
@@ -32,6 +33,16 @@ public class SambaLocalCache implements SambaCache {
     @Override
     public SambaCacheType getType() {
         return SambaCacheType.LOCAL;
+    }
+    
+    @Override
+    public SambaCacheConsistencyModel getConsistencyModel() {
+        return SambaCacheConsistencyModel.STRONG_CONSISTENCY;
+    }
+    
+    @Override
+    public boolean supportInvalidation() {
+        return true;
     }
     
     @SuppressWarnings("unchecked")
