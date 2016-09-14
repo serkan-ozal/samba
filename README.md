@@ -1,6 +1,6 @@
 1. What is Samba?
 ==============
-In general **Samba** is a very simple caching library with very basit caching functionalities (get, put, remove) to be used as local, global or tiered (local + global). 
+In general **Samba** is a very simple caching library with very basit caching functionalities (get, put, replace, remove) to be used as local, global or tiered (local + global). 
 
 **Samba** is designed for non-blocking cache access with lock-free algorithms from stratch. Therefore, being high-performant is one of the its major requirements. In addition, keeping its strong/eventual consistency model promise its another major requirement.
 
@@ -82,21 +82,33 @@ SambaField myTieredCacheBackedField = new SambaField(SambaCacheType.TIERED);
 ```
 
 There are three basic functionalities over `SambaField` field:
-* **Get:** Gets the shared state/value of the field. Invoked via `get()` call over `SambaField` field.
-* **Set:** Sets the shared state/value of the field. Invoked via `set(T value)` call over `SambaField` field.
-* **Clear:** Clears the shared state/value of the field. Invoked via `clear()` call over `SambaField` field.
+* **Get:** Gets the shared state/value of the field. The functionality is invoked via `get()` call over `SambaField` field.
+* **Set:** Sets the shared state/value of the field. The functionality is invoked via `set(T value)` call over `SambaField` field.
+* **Compare-and-Set:** Compares and sets the shared state/value of the field atomically if and only if the current field value is equal to given old value. If replacement has succeeded, returns `true`, otherwise `false`. The functionality is invoked via `compareAndSet(T oldValue, T newValue)` call over `SambaField` field.
+* **Clear:** Clears the shared state/value of the field. The functionality is invoked via `clear()` call over `SambaField` field.
 
 ``` java
+// Assume that we are using caches (LOCAL or GLOBAL but not TIERED) 
+// which have strong-consistency model.
+// Otherwise, some assertions in the following code might fail 
+// while verifying them immediately but not eventually.
+
 SambaField<String> myField = ...
 ...
 myField.set("Value-1");
-String value1 = myField.get(); // value1 is "Value-1"
+value = myField.get(); // value is "Value-1"
 ...
 myField.set("Value-2");
-String value2 = myField.get(); // value2 is "Value-2"
+value = myField.get(); // value is "Value-2" now
+...
+replaced = myField.compareAndSet("Value-1", "Value-3"); // replaced is false
+value = myField.get(); // value is still "Value-2" because compare-and-set has failed
+...
+replaced = myField.compareAndSet("Value-2", "Value-3"); // replaced is true
+value = myField.get(); // value is "Value-3" anymore because compare-and-set has succeeded
 ...
 myField.clear();
-String value3 = myField.get(); // value3 is null
+value = myField.get(); // value is null
 ```
 
 5. Roadmap
