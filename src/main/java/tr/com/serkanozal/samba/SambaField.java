@@ -94,6 +94,11 @@ public class SambaField<T> {
         // TODO Also set proxy on update eagerly as atomic 
     }
     
+    public boolean compareAndSet(T oldValue, T newValue) {
+        return cache.replace(id, new SambaValueProxy(oldValue), new SambaValueProxy(newValue));
+        // TODO Also set proxy on update eagerly as atomic 
+    }
+    
     public void clear() {
         cache.remove(id);
         // TODO Also clear proxy on update eagerly as atomic

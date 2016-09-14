@@ -40,4 +40,20 @@ public final class SambaValueProxy {
         return value != INVALIDATED;
     }
     
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof SambaValueProxy)) {
+            return false;
+        }
+        SambaValueProxy proxy = (SambaValueProxy) obj;
+        if (value == proxy.value) {
+            return true;
+        }
+        if ((value != null && proxy.value == null) 
+                || (value == null && proxy.value != null)) {
+            return false;
+        }
+        return value.equals(proxy.value);
+    }
+    
 }
