@@ -111,13 +111,13 @@ public class SambaGlobalCache implements SambaCache {
             } else {
                 DYNAMO_DB_TABLE_NAME = "___SambaGlobalCache___";
             }
-            String readCapacityPerSecond = sambaProps.getProperty("readCapacityPerSecond");
+            String readCapacityPerSecond = sambaProps.getProperty("cache.global.readCapacityPerSecond");
             if (readCapacityPerSecond != null) {
                 DYNAMO_DB_TABLE_READ_CAPACITY_PER_SECOND = Integer.parseInt(readCapacityPerSecond);
             } else {
                 DYNAMO_DB_TABLE_READ_CAPACITY_PER_SECOND = 1000;
             }
-            String writeCapacityPerSecond = sambaProps.getProperty("writeCapacityPerSecond");
+            String writeCapacityPerSecond = sambaProps.getProperty("cache.global.writeCapacityPerSecond");
             if (writeCapacityPerSecond != null) {
                 DYNAMO_DB_TABLE_WRITE_CAPACITY_PER_SECOND = Integer.parseInt(writeCapacityPerSecond);
             } else {
