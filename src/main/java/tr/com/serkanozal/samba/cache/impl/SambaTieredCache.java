@@ -41,6 +41,12 @@ public class SambaTieredCache implements SambaCache {
                 } finally {
                     nearCache.releaseIfOwned(ownId, key);
                 }
+                
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            String.format("Entry has been invalidated from " + 
+                                          "near-cache of tiered cache with key %s", key));
+                }
             }
             
             @Override
