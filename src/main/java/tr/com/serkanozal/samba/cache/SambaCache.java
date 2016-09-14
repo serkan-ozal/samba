@@ -19,7 +19,7 @@ public interface SambaCache {
 
     SambaCacheType getType();
     SambaCacheConsistencyModel getConsistencyModel();
-    boolean supportInvalidation();
+    boolean doesSupportInvalidation();
     
     <V> V get(String key);
     void put(String key, Object value);

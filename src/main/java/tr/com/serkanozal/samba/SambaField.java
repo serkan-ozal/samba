@@ -49,7 +49,7 @@ public class SambaField<T> {
     public SambaField(String id, SambaCache cache) {
         this.id = id;
         this.cache = cache;
-        this.proxyInvalidationAware = cache.supportInvalidation();
+        this.proxyInvalidationAware = cache.doesSupportInvalidation();
         this.valueProxy = EMPTY_PROXY;
     }
     

@@ -416,7 +416,7 @@ public class SambaGlobalCache implements SambaCache {
     }
     
     @Override
-    public boolean supportInvalidation() {
+    public boolean doesSupportInvalidation() {
         return false;
     }
     

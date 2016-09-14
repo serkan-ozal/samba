@@ -71,7 +71,7 @@ public class SambaTieredCache implements SambaCache {
     }
     
     @Override
-    public boolean supportInvalidation() {
+    public boolean doesSupportInvalidation() {
         return true;
     }
     

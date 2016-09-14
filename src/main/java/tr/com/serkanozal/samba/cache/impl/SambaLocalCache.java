@@ -41,7 +41,7 @@ public class SambaLocalCache implements SambaCache {
     }
     
     @Override
-    public boolean supportInvalidation() {
+    public boolean doesSupportInvalidation() {
         return true;
     }
     
