@@ -89,14 +89,26 @@ public class SambaField<T> {
         if (value == null) {
             clear();
         } else {
-            cache.put(id, new SambaValueProxy(value));
+            cache.put(id, toProxy(value));
         }    
         // TODO Also set proxy on update eagerly as atomic 
     }
     
     public boolean compareAndSet(T oldValue, T newValue) {
-        return cache.replace(id, new SambaValueProxy(oldValue), new SambaValueProxy(newValue));
+        return cache.replace(id, toProxy(oldValue), toProxy(newValue));
         // TODO Also set proxy on update eagerly as atomic 
+    }
+    
+    public boolean compareAndSet(T newValue) {
+        return compareAndSet(get(), newValue);
+    }
+    
+    private SambaValueProxy toProxy(Object value) {
+        if (value == null) {
+            return null;
+        } else {
+            return new SambaValueProxy(value);
+        }
     }
     
     public void clear() {

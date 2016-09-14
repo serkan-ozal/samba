@@ -38,7 +38,10 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBStreamsClient;
 import com.amazonaws.services.dynamodbv2.document.Expected;
 import com.amazonaws.services.dynamodbv2.document.Item;
+import com.amazonaws.services.dynamodbv2.document.ItemCollection;
+import com.amazonaws.services.dynamodbv2.document.ScanOutcome;
 import com.amazonaws.services.dynamodbv2.document.Table;
+import com.amazonaws.services.dynamodbv2.document.internal.IteratorSupport;
 import com.amazonaws.services.dynamodbv2.document.spec.GetItemSpec;
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
 import com.amazonaws.services.dynamodbv2.model.ConditionalCheckFailedException;
@@ -436,39 +439,65 @@ public class SambaGlobalCache implements SambaCache {
 
     @Override
     public void put(String key, Object value) {
-        byte[] data = serialize(value);
-        Item item = 
-                new Item().
-                    withPrimaryKey("id", key).
-                    withBinary("data", data).
-                    with("source", UUID);
-        DYNAMO_DB_TABLE.putItem(item);
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug(
-                    String.format("Value %s has been put into global cache with key %s", key, value));
-        }
+        if (value == null) {
+            remove(key);
+        } else {
+            byte[] data = serialize(value);
+            Item item = 
+                    new Item().
+                        withPrimaryKey("id", key).
+                        withBinary("data", data).
+                        with("source", UUID);
+            DYNAMO_DB_TABLE.putItem(item);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        String.format("Value %s has been put into global cache with key %s", key, value));
+            }
+        }    
     }
     
     @Override
     public boolean replace(String key, Object oldValue, Object newValue) {
-        byte[] oldData = serialize(oldValue);
-        byte[] newData = serialize(newValue);
-        Item item = 
-                new Item().
-                    withPrimaryKey("id", key).
-                    withBinary("data", newData).
-                    with("source", UUID);
-        try {
-            DYNAMO_DB_TABLE.putItem(item, new Expected("data").eq(oldData));
-        } catch (ConditionalCheckFailedException e) {
-            return false;
-        }
-        if (LOGGER.isDebugEnabled()) {
+        boolean replaced = false;
+        if (oldValue == null && newValue != null) {
+            byte[] newData = serialize(newValue);
+            Item item = 
+                    new Item().
+                        withPrimaryKey("id", key).
+                        withBinary("data", newData).
+                        with("source", UUID);
+            try {
+                DYNAMO_DB_TABLE.putItem(item, new Expected("id").notExist());
+                replaced = true;
+            } catch (ConditionalCheckFailedException e) {
+            }
+        } else if (oldValue != null && newValue == null) {
+            byte[] oldData = serialize(oldValue);
+            try {
+                DYNAMO_DB_TABLE.deleteItem("id", key, new Expected("data").eq(oldData));
+                replaced = true;
+            } catch (ConditionalCheckFailedException e) {
+            }
+        } else if (oldValue != null && newValue != null) {
+            byte[] oldData = serialize(oldValue);
+            byte[] newData = serialize(newValue);
+            Item item = 
+                    new Item().
+                        withPrimaryKey("id", key).
+                        withBinary("data", newData).
+                        with("source", UUID);
+            try {
+                DYNAMO_DB_TABLE.putItem(item, new Expected("data").eq(oldData));
+                replaced = true;
+            } catch (ConditionalCheckFailedException e) {
+            }
+        }    
+        if (replaced && LOGGER.isDebugEnabled()) {
             LOGGER.debug(
                     String.format("Old value %s has been replaced with new value %s " + 
                                   "assigned to key %s", oldValue, newValue, key));
         }
-        return true;
+        return replaced;
     }
 
     @Override
@@ -477,6 +506,19 @@ public class SambaGlobalCache implements SambaCache {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
                     String.format("Value has been removed from global cache with key %s", key));
+        }
+    }
+    
+    @Override
+    public void clear() {
+        ItemCollection<ScanOutcome> items = DYNAMO_DB_TABLE.scan();
+        IteratorSupport<Item, ScanOutcome> itemsIter = items.iterator();
+        while (itemsIter.hasNext()) {
+            Item item = itemsIter.next();
+            DYNAMO_DB_TABLE.deleteItem("id", item.get("id"));
+        }
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Global cache has been cleared");
         }
     }
 

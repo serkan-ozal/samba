@@ -15,6 +15,8 @@
  */
 package tr.com.serkanozal.samba.cache.impl;
 
+import java.util.Iterator;
+
 import org.apache.log4j.Logger;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
@@ -58,29 +60,51 @@ public class SambaLocalCache implements SambaCache {
 
     @Override
     public void put(String key, Object value) {
-        Object oldValue = unwrapValue(map.put(key, wrapValue(value)));
-        if (oldValue instanceof SambaValueProxy) {
-            ((SambaValueProxy) oldValue).invalidateValue();
-        }
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug(
-                    String.format("Value %s has been put into local cache with key %s", key, value));
-        }
+        if (value == null) {
+            remove(key);
+        } else {
+            Object oldValue = unwrapValue(map.put(key, wrapValue(value)));
+            if (oldValue instanceof SambaValueProxy) {
+                ((SambaValueProxy) oldValue).invalidateValue();
+            }
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        String.format("Value %s has been put into local cache with key %s", key, value));
+            }
+        }    
     }
 
     @Override
     public boolean replace(String key, Object oldValue, Object newValue) {
-        LocalValueWrapper oldValueWraper = wrapValue(oldValue);
-        LocalValueWrapper newValueWrapper = wrapValue(newValue);
-        boolean replaced = map.replace(key, oldValueWraper, newValueWrapper);
-        if (replaced) {
-            assert oldValueWraper.equalValueWrapper != null;
-            
-            Object oldValueRef = oldValueWraper.equalValueWrapper.value;
-            if (oldValueRef instanceof SambaValueProxy) {
-                ((SambaValueProxy) oldValueRef).invalidateValue();
+        boolean replaced = false;
+        if (oldValue == null && newValue != null) {
+            if (map.putIfAbsent(key, wrapValue(newValue)) == null) {
+                replaced = true;
             }
-        }
+        } else if (oldValue != null && newValue == null) {
+            LocalValueWrapper oldValueWraper = wrapValue(oldValue);
+            replaced = map.remove(key, oldValueWraper);
+            if (replaced) {
+                assert oldValueWraper.equalValueWrapper != null;
+                
+                Object oldValueRef = oldValueWraper.equalValueWrapper.value;
+                if (oldValueRef instanceof SambaValueProxy) {
+                    ((SambaValueProxy) oldValueRef).invalidateValue();
+                }
+            }
+        } else if (oldValue != null && newValue != null) {
+            LocalValueWrapper oldValueWraper = wrapValue(oldValue);
+            LocalValueWrapper newValueWrapper = wrapValue(newValue);
+            replaced = map.replace(key, oldValueWraper, newValueWrapper);
+            if (replaced) {
+                assert oldValueWraper.equalValueWrapper != null;
+                
+                Object oldValueRef = oldValueWraper.equalValueWrapper.value;
+                if (oldValueRef instanceof SambaValueProxy) {
+                    ((SambaValueProxy) oldValueRef).invalidateValue();
+                }
+            }
+        }    
         if (replaced && LOGGER.isDebugEnabled()) {
             LOGGER.debug(
                     String.format("Old value %s has been replaced with new value %s " + 
@@ -98,6 +122,18 @@ public class SambaLocalCache implements SambaCache {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
                     String.format("Value has been removed from local cache with key %s", key));
+        }
+    }
+    
+    @Override
+    public void clear() {
+        Iterator<String> iter = map.keySet().iterator();
+        while (iter.hasNext()) {
+            String key = iter.next();
+            remove(key);
+        }
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Local cache has been cleared");
         }
     }
     

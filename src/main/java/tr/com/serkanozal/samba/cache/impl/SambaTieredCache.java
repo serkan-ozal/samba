@@ -109,37 +109,63 @@ public class SambaTieredCache implements SambaCache {
 
     @Override
     public void put(String key, Object value) {
-        long ownId = nearCache.tryOwn(key);
-        try {
-            globalCache.put(key, value);
-            nearCache.putIfAvailable(ownId, key, value);  
-        } finally {
-            nearCache.releaseIfOwned(ownId, key);
-        }
-        
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug(
-                    String.format("Value %s has been put into tiered cache with key %s", key, value));
+        if (value == null) {
+            remove(key);
+        } else {
+            long ownId = nearCache.tryOwn(key);
+            try {
+                globalCache.put(key, value);
+                nearCache.putIfAvailable(ownId, key, value);  
+            } finally {
+                nearCache.releaseIfOwned(ownId, key);
+            }
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        String.format("Value %s has been put into tiered cache with key %s", key, value));
+            }
         }
     }
     
     @Override
     public boolean replace(String key, Object oldValue, Object newValue) {
-        long ownId = nearCache.tryOwn(key);
-        try {
-            if (!globalCache.replace(key, oldValue, newValue)) {
-                return false;
+        boolean replaced = false;
+        if (oldValue == null && newValue != null) {
+            long ownId = nearCache.tryOwn(key);
+            try {
+                if (globalCache.replace(key, oldValue, newValue)) {
+                    nearCache.putIfAvailable(ownId, key, newValue); 
+                    replaced = true;
+                }
+            } finally {
+                nearCache.releaseIfOwned(ownId, key);
             }
-            nearCache.putIfAvailable(ownId, key, newValue);  
-        } finally {
-            nearCache.releaseIfOwned(ownId, key);
-        }
-        if (LOGGER.isDebugEnabled()) {
+        } else if (oldValue != null && newValue == null) {
+            long ownId = nearCache.tryOwn(key);
+            try {
+                if (globalCache.replace(key, oldValue, newValue)) {
+                    nearCache.remove(key);
+                    replaced = true;
+                }
+            } finally {
+                nearCache.releaseIfOwned(ownId, key);
+            }
+        } else if (oldValue != null && newValue != null) {
+            long ownId = nearCache.tryOwn(key);
+            try {
+                if (globalCache.replace(key, oldValue, newValue)) {
+                    nearCache.putIfAvailable(ownId, key, newValue); 
+                    replaced = true;
+                }
+            } finally {
+                nearCache.releaseIfOwned(ownId, key);
+            }
+        }    
+        if (replaced && LOGGER.isDebugEnabled()) {
             LOGGER.debug(
                     String.format("Old value %s has been replaced with new value %s " + 
                                   "assigned to key %s", oldValue, newValue, key));
         }
-        return true;
+        return replaced;
     }
 
     @Override
@@ -155,6 +181,20 @@ public class SambaTieredCache implements SambaCache {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
                     String.format("Value has been removed from tiered cache with key %s", key));
+        }
+    }
+    
+    @Override
+    public void clear() {
+        nearCache.ownAll();
+        try {
+            globalCache.clear();
+            nearCache.clear();
+        } finally {
+            nearCache.releaseAll();
+        }
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Tiered cache has been cleared");
         }
     }
     
@@ -197,6 +237,12 @@ public class SambaTieredCache implements SambaCache {
             slotStates.incrementAndGet(activeCountIndex(slot));
             return ownId;
         }
+        
+        private void ownAll() {
+            for (int slot = 0; slot < SLOT_COUNT; slot++) {
+                slotStates.incrementAndGet(activeCountIndex(slot));
+            }    
+        }
 
         private void releaseIfOwned(long ownId, String key) {
             int slot = getSlot(key);
@@ -205,6 +251,25 @@ public class SambaTieredCache implements SambaCache {
             if (ownId >= 0) {
                 slotStates.set(ownIdIndex(slot), 0);
             }   
+        }
+        
+        private void releaseAll() {
+            for (int slot = 0; slot < SLOT_COUNT; slot++) {
+                slotStates.incrementAndGet(completedCountIndex(slot));
+                slotStates.decrementAndGet(activeCountIndex(slot));
+            }
+        }
+        
+        private void putIfAvailable(long ownId, String key, Object value) {
+            if (ownId >= 0) {
+                int slot = getSlot(key);
+                long activeCount = slotStates.get(activeCountIndex(slot));
+                long expectedCompleted = ownId;
+                long currentCompleted = slotStates.get(completedCountIndex(slot));
+                if (activeCount == 1 && currentCompleted == expectedCompleted) {
+                    put(key, value);
+                }   
+            }
         }
 
         private Object get(String key) {
@@ -219,16 +284,8 @@ public class SambaTieredCache implements SambaCache {
             localCache.remove(key);
         }
 
-        private void putIfAvailable(long ownId, String key, Object value) {
-            if (ownId >= 0) {
-                int slot = getSlot(key);
-                long activeCount = slotStates.get(activeCountIndex(slot));
-                long expectedCompleted = ownId;
-                long currentCompleted = slotStates.get(completedCountIndex(slot));
-                if (activeCount == 1 && currentCompleted == expectedCompleted) {
-                    put(key, value);
-                }   
-            }
+        private void clear() {
+            localCache.clear();
         }
 
     }   
