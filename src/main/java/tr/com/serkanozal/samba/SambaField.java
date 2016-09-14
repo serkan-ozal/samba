@@ -86,7 +86,11 @@ public class SambaField<T> {
     }
     
     public void set(T value) {
-        cache.put(id, new SambaValueProxy(value));
+        if (value == null) {
+            clear();
+        } else {
+            cache.put(id, new SambaValueProxy(value));
+        }    
         // TODO Also set proxy on update eagerly as atomic 
     }
     
