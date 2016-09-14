@@ -36,10 +36,12 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBStreamsClient;
+import com.amazonaws.services.dynamodbv2.document.Expected;
 import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.Table;
 import com.amazonaws.services.dynamodbv2.document.spec.GetItemSpec;
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
+import com.amazonaws.services.dynamodbv2.model.ConditionalCheckFailedException;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.DescribeStreamRequest;
 import com.amazonaws.services.dynamodbv2.model.DescribeStreamResult;
@@ -315,13 +317,9 @@ public class SambaGlobalCache implements SambaCache {
                                 String key = streamRecord.getKeys().get("id").getS();
                                 if ("INSERT".equals(eventName)) {
                                     byte[] newData = streamRecord.getNewImage().get("data").getB().array();
-                                    ValueWrapper newValueWrapper = null;
-                                    Object newValue = null;
-                                    if (newData != null) {
-                                        newValueWrapper = deserialize(newData);
-                                        newValue = newValueWrapper.value;
-                                    }
-                                    if (newValueWrapper != null && !newValueWrapper.source.equals(UUID)) { 
+                                    String source = streamRecord.getNewImage().get("source").getS();
+                                    Object newValue = newData != null ? deserialize(newData) : null;
+                                    if (!source.equals(UUID)) { 
                                         for (CacheChangeListener listener : cacheChangeListeners) {
                                             listener.onInsert(key, newValue);
                                         }
@@ -329,19 +327,10 @@ public class SambaGlobalCache implements SambaCache {
                                 } else if ("MODIFY".equals(eventName)) {
                                     byte[] oldData = streamRecord.getOldImage().get("data").getB().array();
                                     byte[] newData = streamRecord.getNewImage().get("data").getB().array();
-                                    ValueWrapper oldValueWrapper = null;
-                                    Object oldValue = null;
-                                    ValueWrapper newValueWrapper = null;
-                                    Object newValue = null;
-                                    if (oldData != null) {
-                                        oldValueWrapper = deserialize(oldData);
-                                        oldValue = oldValueWrapper.value;
-                                    }
-                                    if (newData != null) {
-                                        newValueWrapper = deserialize(newData);
-                                        newValue = newValueWrapper.value;
-                                    }
-                                    if (newValueWrapper != null && !newValueWrapper.source.equals(UUID)) { 
+                                    String source = streamRecord.getNewImage().get("source").getS();
+                                    Object oldValue = oldData != null ? deserialize(oldData) : null;
+                                    Object newValue = newData != null ? deserialize(newData) : null;
+                                    if (!source.equals(UUID)) { 
                                         for (CacheChangeListener listener : cacheChangeListeners) {
                                             listener.onUpdate(key, oldValue, newValue);
                                         }
@@ -420,7 +409,6 @@ public class SambaGlobalCache implements SambaCache {
         return false;
     }
     
-    @SuppressWarnings("unchecked")
     @Override
     public <V> V get(String key) {
         V value;
@@ -436,8 +424,7 @@ public class SambaGlobalCache implements SambaCache {
             if (data == null) {
                 value = null;
             } else {
-                ValueWrapper vw = deserialize(data);
-                value = (V) vw.value;
+                value = deserialize(data);
             }
         }    
         if (LOGGER.isDebugEnabled()) {
@@ -449,16 +436,39 @@ public class SambaGlobalCache implements SambaCache {
 
     @Override
     public void put(String key, Object value) {
-        byte[] data = serialize(new ValueWrapper(UUID, value));
+        byte[] data = serialize(value);
         Item item = 
                 new Item().
                     withPrimaryKey("id", key).
-                    withBinary("data", data);
+                    withBinary("data", data).
+                    with("source", UUID);
         DYNAMO_DB_TABLE.putItem(item);
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
                     String.format("Value %s has been put into global cache with key %s", key, value));
         }
+    }
+    
+    @Override
+    public boolean replace(String key, Object oldValue, Object newValue) {
+        byte[] oldData = serialize(oldValue);
+        byte[] newData = serialize(newValue);
+        Item item = 
+                new Item().
+                    withPrimaryKey("id", key).
+                    withBinary("data", newData).
+                    with("source", UUID);
+        try {
+            DYNAMO_DB_TABLE.putItem(item, new Expected("data").eq(oldData));
+        } catch (ConditionalCheckFailedException e) {
+            return false;
+        }
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    String.format("Old value %s has been replaced with new value %s " + 
+                                  "assigned to key %s", oldValue, newValue, key));
+        }
+        return true;
     }
 
     @Override
@@ -468,22 +478,6 @@ public class SambaGlobalCache implements SambaCache {
             LOGGER.debug(
                     String.format("Value has been removed from global cache with key %s", key));
         }
-    }
-    
-    private static class ValueWrapper {
-        
-        private String source;
-        private Object value;
-        
-        @SuppressWarnings("unused")
-        private ValueWrapper() {
-        }
-
-        public ValueWrapper(String source, Object value) {
-            this.source = source;
-            this.value = value;
-        }
-
     }
 
 }

@@ -23,6 +23,7 @@ public interface SambaCache {
     
     <V> V get(String key);
     void put(String key, Object value);
+    boolean replace(String key, Object oldValue, Object newValue);
     void remove(String key);
     
 }

@@ -122,6 +122,25 @@ public class SambaTieredCache implements SambaCache {
                     String.format("Value %s has been put into tiered cache with key %s", key, value));
         }
     }
+    
+    @Override
+    public boolean replace(String key, Object oldValue, Object newValue) {
+        long ownId = nearCache.tryOwn(key);
+        try {
+            if (!globalCache.replace(key, oldValue, newValue)) {
+                return false;
+            }
+            nearCache.putIfAvailable(ownId, key, newValue);  
+        } finally {
+            nearCache.releaseIfOwned(ownId, key);
+        }
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    String.format("Old value %s has been replaced with new value %s " + 
+                                  "assigned to key %s", oldValue, newValue, key));
+        }
+        return true;
+    }
 
     @Override
     public void remove(String key) {
