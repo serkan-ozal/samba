@@ -62,7 +62,7 @@ public abstract class BaseSambaFieldTest {
                     }
                 }
                 throw new AssertionFailedError(
-                        String.format("Expected value %s couldn't be retrieved eventually!"));
+                        String.format("Expected value %s couldn't be retrieved eventually!", expectedValue));
             default:
                 throw new IllegalArgumentException("Unknown consistency model: " + consistencyModel);
         }
