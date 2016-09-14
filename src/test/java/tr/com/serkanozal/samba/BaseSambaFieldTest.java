@@ -37,10 +37,20 @@ public abstract class BaseSambaFieldTest {
         SambaField<String> field2 = new SambaField<String>(fieldId, cacheType);
         
         field1.set("Value-x");
+        Assert.assertEquals("Value-x", field1.get());
         Assert.assertEquals("Value-x", field2.get());
         
         field1.set("Value-y");
+        Assert.assertEquals("Value-y", field1.get());
         checkConsistency(field2, "Value-y");
+        
+        Assert.assertFalse(field1.compareAndSet("Value", "Value-z"));
+        Assert.assertEquals("Value-y", field1.get());
+        Assert.assertEquals("Value-y", field2.get());
+        
+        Assert.assertTrue(field1.compareAndSet("Value-y", "Value-z"));
+        Assert.assertEquals("Value-z", field1.get());
+        checkConsistency(field2, "Value-z");
     }
     
     private void checkConsistency(SambaField<String> field, String expectedValue) {
