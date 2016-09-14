@@ -22,7 +22,9 @@ import junit.framework.AssertionFailedError;
 import org.junit.Assert;
 import org.junit.Test;
 
+import tr.com.serkanozal.samba.cache.SambaCache;
 import tr.com.serkanozal.samba.cache.SambaCacheConsistencyModel;
+import tr.com.serkanozal.samba.cache.SambaCacheProvider;
 import tr.com.serkanozal.samba.cache.SambaCacheType;
 
 public abstract class BaseSambaFieldTest {
@@ -32,25 +34,92 @@ public abstract class BaseSambaFieldTest {
     @Test
     public void test_fieldConsistency() {
         SambaCacheType cacheType = getCacheType();
-        String fieldId = UUID.randomUUID().toString();
-        SambaField<String> field1 = new SambaField<String>(fieldId, cacheType);
-        SambaField<String> field2 = new SambaField<String>(fieldId, cacheType);
+        SambaCache cache = SambaCacheProvider.getCache(cacheType);
         
-        field1.set("Value-x");
-        Assert.assertEquals("Value-x", field1.get());
-        Assert.assertEquals("Value-x", field2.get());
+        cache.clear();
         
-        field1.set("Value-y");
-        Assert.assertEquals("Value-y", field1.get());
-        checkConsistency(field2, "Value-y");
-        
-        Assert.assertFalse(field1.compareAndSet("Value", "Value-z"));
-        Assert.assertEquals("Value-y", field1.get());
-        Assert.assertEquals("Value-y", field2.get());
-        
-        Assert.assertTrue(field1.compareAndSet("Value-y", "Value-z"));
-        Assert.assertEquals("Value-z", field1.get());
-        checkConsistency(field2, "Value-z");
+        try {
+            String fieldId = UUID.randomUUID().toString();
+            SambaField<String> field1 = new SambaField<String>(fieldId, cache);
+            SambaField<String> field2 = new SambaField<String>(fieldId, cache);
+            
+            ////////////////////////////////////////////////////////// 
+            
+            Assert.assertNull(field1.get());
+            Assert.assertNull(field2.get());
+            
+            ////////////////////////////////////////////////////////// 
+            
+            field1.set("Value-1");
+            Assert.assertEquals("Value-1", field1.get());
+            Assert.assertEquals("Value-1", field2.get());
+            
+            field1.set("Value-2");
+            Assert.assertEquals("Value-2", field1.get());
+            checkConsistency(field2, "Value-2");
+            
+            ////////////////////////////////////////////////////////// 
+            
+            field1.set(null);
+            Assert.assertNull(field1.get());
+            checkConsistency(field2, null);
+            
+            ////////////////////////////////////////////////////////// 
+            
+            Assert.assertFalse(field1.compareAndSet("Value-0", "Value-3"));
+            Assert.assertNull(field1.get());
+            Assert.assertNull(field2.get());
+            
+            Assert.assertTrue(field1.compareAndSet(null, "Value-3"));
+            Assert.assertEquals("Value-3", field1.get());
+            checkConsistency(field2, "Value-3");
+            
+            ////////////////////////////////////////////////////////// 
+
+            Assert.assertFalse(field1.compareAndSet("Value-0", "Value-4"));
+            Assert.assertEquals("Value-3", field1.get());
+            Assert.assertEquals("Value-3", field2.get());
+            
+            Assert.assertTrue(field1.compareAndSet("Value-3", "Value-4"));
+            Assert.assertEquals("Value-4", field1.get());
+            checkConsistency(field2, "Value-4");
+            
+            ////////////////////////////////////////////////////////// 
+            
+            Assert.assertFalse(field1.compareAndSet("Value-0", null));
+            Assert.assertEquals("Value-4", field1.get());
+            Assert.assertEquals("Value-4", field2.get());
+            
+            Assert.assertTrue(field1.compareAndSet("Value-4", null));
+            Assert.assertNull(field1.get());
+            checkConsistency(field2, null);
+            
+            ////////////////////////////////////////////////////////// 
+            
+            field1.set("Value-5");
+            Assert.assertEquals("Value-5", field1.get());
+            checkConsistency(field2, "Value-5");
+            
+            ////////////////////////////////////////////////////////// 
+            
+            field1.clear();
+            Assert.assertNull(field1.get());
+            checkConsistency(field2, null);
+            
+            ////////////////////////////////////////////////////////// 
+            
+            field1.set("Value-6");
+            Assert.assertEquals("Value-6", field1.get());
+            checkConsistency(field2, "Value-6");
+            
+            ////////////////////////////////////////////////////////// 
+            
+            cache.clear();
+            Assert.assertNull(field1.get());
+            checkConsistency(field2, null);
+        } finally {
+            cache.clear();
+        }    
     }
     
     private void checkConsistency(SambaField<String> field, String expectedValue) {
@@ -63,9 +132,15 @@ public abstract class BaseSambaFieldTest {
                 long start = System.currentTimeMillis();
                 long finish = start + 30 * 1000; // 30 seconds later
                 while (System.currentTimeMillis() < finish) {
-                    if (expectedValue.equals(field.get())) {
-                        return;
-                    }
+                    if (expectedValue == null) {
+                        if (field.get() == null) {
+                            return;
+                        }
+                    } else {
+                        if (expectedValue.equals(field.get())) {
+                            return;
+                        }
+                    }    
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
