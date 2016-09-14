@@ -84,7 +84,7 @@ SambaField myTieredCacheBackedField = new SambaField(SambaCacheType.TIERED);
 There are three basic functionalities over `SambaField` field:
 * **Get:** Gets the shared state/value of the field. The functionality is invoked via `get()` call over `SambaField` field.
 * **Set:** Sets the shared state/value of the field. The functionality is invoked via `set(T value)` call over `SambaField` field.
-* **Compare-and-Set:** Compares and sets the shared state/value of the field atomically if and only if the current field value is equal to given old value. If replacement has succeeded, returns `true`, otherwise `false`. The functionality is invoked via `compareAndSet(T oldValue, T newValue)` call over `SambaField` field.
+* **Compare-and-Set:** Compares and sets the shared state/value of the field atomically if and only if the current field value is equal to given old value. If replacement has succeeded, returns `true`, otherwise `false`. The functionality is invoked over `SambaField` field via `compareAndSet(T oldValue, T newValue)` if old value is specified explicitly or via `compareAndSet(T newValue)` if current value is assumed to be used as old value.
 * **Clear:** Clears the shared state/value of the field. The functionality is invoked via `clear()` call over `SambaField` field.
 
 ``` java
