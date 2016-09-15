@@ -56,6 +56,12 @@ public class SambaLocalCache implements SambaCache {
         }
         return valueProxy;
     }
+    
+    @SuppressWarnings("unchecked")
+    @Override
+    public Object refresh(String key) {
+        return get(key);
+    }
 
     @Override
     public void put(String key, Object value) {

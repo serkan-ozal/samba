@@ -101,6 +101,28 @@ public class SambaTieredCache implements SambaCache {
         
         return value;
     }
+    
+    @Override
+    public <V> V refresh(String key) {
+        V value = null;
+        long ownId = nearCache.tryOwn(key);
+        try {
+            nearCache.remove(key);
+            value = globalCache.get(key);
+            if (value != null) {
+                nearCache.putIfAvailable(ownId, key, value);
+            }    
+        } finally {
+            nearCache.releaseIfOwned(ownId, key);
+        }
+        
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    String.format("Value %s has been refreshed from tiered cache with key %s", key, value));
+        }
+        
+        return value;
+    }
 
     @Override
     public void put(String key, Object value) {

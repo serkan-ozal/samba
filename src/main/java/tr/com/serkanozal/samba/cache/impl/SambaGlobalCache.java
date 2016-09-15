@@ -431,6 +431,11 @@ public class SambaGlobalCache implements SambaCache {
         }
         return value;
     }
+    
+    @Override
+    public <V> V refresh(String key) {
+        return get(key);
+    }
 
     @Override
     public void put(String key, Object value) {

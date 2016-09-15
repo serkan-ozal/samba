@@ -87,6 +87,27 @@ public class SambaField<T> {
         }    
     }
     
+    @SuppressWarnings("unchecked")
+    public T refresh() {
+        valueProxy = EMPTY_PROXY;
+        for (;;) {
+            Object value = cache.refresh(id);
+            if (value instanceof SambaValueProxy) {
+                SambaValueProxy proxy = (SambaValueProxy) value;
+                if (proxy != null) {
+                    valueProxy = proxy;
+                    value = valueProxy.getValue();
+                    if (value != SambaValueProxy.INVALIDATED) {
+                        return (T) value;
+                    }    
+                }
+            } else {
+                valueProxy = EMPTY_PROXY;
+                return (T) value;
+            }
+        }    
+    }
+    
     public void set(T value) {
         if (value == null) {
             clear();
@@ -118,12 +139,13 @@ public class SambaField<T> {
     }
     
     public T processAtomically(SambaFieldProcessor<T> processor) {
+        T currentValue = get();
         for (;;) {
-            T currentValue = get();
             T newValue = processor.process(currentValue);
             if (compareAndSet(currentValue, newValue)) {
                 return newValue;
             }
+            currentValue = refresh();
         }
     }
 

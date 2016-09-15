@@ -21,6 +21,7 @@ public interface SambaCache {
     SambaCacheConsistencyModel getConsistencyModel();
     
     <V> V get(String key);
+    <V> V refresh(String key);
     void put(String key, Object value);
     boolean replace(String key, Object oldValue, Object newValue);
     void remove(String key);
