@@ -113,7 +113,7 @@ public abstract class BaseSambaFieldTest {
         
         field1.set("Value-5");
         Assert.assertEquals("Value-5", field1.get());
-        checkConsistency(field2, "Value-5");
+        Assert.assertEquals("Value-5", field2.refresh());
         
         ////////////////////////////////////////////////////////// 
         
@@ -125,7 +125,7 @@ public abstract class BaseSambaFieldTest {
         
         field1.set("Value-6");
         Assert.assertEquals("Value-6", field1.get());
-        checkConsistency(field2, "Value-6");
+        Assert.assertEquals("Value-6", field2.refresh());
         
         ////////////////////////////////////////////////////////// 
         
