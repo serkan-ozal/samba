@@ -41,21 +41,20 @@ public class SambaLocalCache implements SambaCache {
     public SambaCacheConsistencyModel getConsistencyModel() {
         return SambaCacheConsistencyModel.STRONG_CONSISTENCY;
     }
-    
-    @Override
-    public boolean doesSupportInvalidation() {
-        return true;
-    }
-    
+
     @SuppressWarnings("unchecked")
     @Override
-    public <V> V get(String key) {
-        V value = (V) unwrapValue(map.get(key));
+    public Object get(String key) {
+        Object value = null;
+        SambaValueProxy valueProxy = unwrapValue(map.get(key));
+        if (valueProxy != null) {
+            value = valueProxy.getValue();
+        }
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
                     String.format("Value %s has been retrieved from local cache with key %s", key, value));
         }
-        return value;
+        return valueProxy;
     }
 
     @Override
@@ -63,9 +62,9 @@ public class SambaLocalCache implements SambaCache {
         if (value == null) {
             remove(key);
         } else {
-            Object oldValue = unwrapValue(map.put(key, wrapValue(value)));
-            if (oldValue instanceof SambaValueProxy) {
-                ((SambaValueProxy) oldValue).invalidateValue();
+            SambaValueProxy oldValueProxy = unwrapValue(map.put(key, wrapValue(new SambaValueProxy(value))));
+            if (oldValueProxy != null) {
+                oldValueProxy.invalidateValue();
             }
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug(
@@ -78,30 +77,30 @@ public class SambaLocalCache implements SambaCache {
     public boolean replace(String key, Object oldValue, Object newValue) {
         boolean replaced = false;
         if (oldValue == null && newValue != null) {
-            if (map.putIfAbsent(key, wrapValue(newValue)) == null) {
+            if (map.putIfAbsent(key, wrapValue(new SambaValueProxy(newValue))) == null) {
                 replaced = true;
             }
         } else if (oldValue != null && newValue == null) {
-            LocalValueWrapper oldValueWraper = wrapValue(oldValue);
+            LocalValueWrapper oldValueWraper = wrapValue(new SambaValueProxy(oldValue));
             replaced = map.remove(key, oldValueWraper);
             if (replaced) {
                 assert oldValueWraper.equalValueWrapper != null;
                 
-                Object oldValueRef = oldValueWraper.equalValueWrapper.value;
-                if (oldValueRef instanceof SambaValueProxy) {
-                    ((SambaValueProxy) oldValueRef).invalidateValue();
+                SambaValueProxy oldValueProxy = oldValueWraper.equalValueWrapper.value;
+                if (oldValueProxy != null) {
+                    oldValueProxy.invalidateValue();
                 }
             }
         } else if (oldValue != null && newValue != null) {
-            LocalValueWrapper oldValueWraper = wrapValue(oldValue);
-            LocalValueWrapper newValueWrapper = wrapValue(newValue);
+            LocalValueWrapper oldValueWraper = wrapValue(new SambaValueProxy(oldValue));
+            LocalValueWrapper newValueWrapper = wrapValue(new SambaValueProxy(newValue));
             replaced = map.replace(key, oldValueWraper, newValueWrapper);
             if (replaced) {
                 assert oldValueWraper.equalValueWrapper != null;
                 
-                Object oldValueRef = oldValueWraper.equalValueWrapper.value;
-                if (oldValueRef instanceof SambaValueProxy) {
-                    ((SambaValueProxy) oldValueRef).invalidateValue();
+                SambaValueProxy oldValueProxy = oldValueWraper.equalValueWrapper.value;
+                if (oldValueProxy != null) {
+                    oldValueProxy.invalidateValue();
                 }
             }
         }    
@@ -115,9 +114,9 @@ public class SambaLocalCache implements SambaCache {
 
     @Override
     public void remove(String key) {
-        Object oldValue = unwrapValue(map.remove(key));
-        if (oldValue instanceof SambaValueProxy) {
-            ((SambaValueProxy) oldValue).invalidateValue();
+        SambaValueProxy oldValueProxy = unwrapValue(map.remove(key));
+        if (oldValueProxy != null) {
+            oldValueProxy.invalidateValue();
         }
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
@@ -137,13 +136,13 @@ public class SambaLocalCache implements SambaCache {
         }
     }
     
-    private LocalValueWrapper wrapValue(Object value) {
-        return new LocalValueWrapper(value);
+    private LocalValueWrapper wrapValue(SambaValueProxy valueProxy) {
+        return new LocalValueWrapper(valueProxy);
     }
     
-    private Object unwrapValue(LocalValueWrapper wrapper) {
+    private SambaValueProxy unwrapValue(LocalValueWrapper wrapper) {
         if (wrapper != null) {
-            return wrapper.value;
+            return (SambaValueProxy) wrapper.value;
         } else {
             return null;
         }
@@ -151,10 +150,10 @@ public class SambaLocalCache implements SambaCache {
     
     private static final class LocalValueWrapper {
         
-        private final Object value;
+        private final SambaValueProxy value;
         private LocalValueWrapper equalValueWrapper;
         
-        private LocalValueWrapper(Object value) {
+        private LocalValueWrapper(SambaValueProxy value) {
             this.value = value;
         }
         

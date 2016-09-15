@@ -75,12 +75,7 @@ public class SambaTieredCache implements SambaCache {
     public SambaCacheConsistencyModel getConsistencyModel() {
         return SambaCacheConsistencyModel.EVENTUAL_CONSISTENCY;
     }
-    
-    @Override
-    public boolean doesSupportInvalidation() {
-        return true;
-    }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public <V> V get(String key) {
@@ -260,7 +255,7 @@ public class SambaTieredCache implements SambaCache {
             }
         }
         
-        private void putIfAvailable(long ownId, String key, Object value) {
+        private boolean putIfAvailable(long ownId, String key, Object value) {
             if (ownId >= 0) {
                 int slot = getSlot(key);
                 long activeCount = slotStates.get(activeCountIndex(slot));
@@ -268,8 +263,10 @@ public class SambaTieredCache implements SambaCache {
                 long currentCompleted = slotStates.get(completedCountIndex(slot));
                 if (activeCount == 1 && currentCompleted == expectedCompleted) {
                     put(key, value);
+                    return true;
                 }   
             }
+            return false;
         }
 
         private Object get(String key) {

@@ -29,7 +29,6 @@ public class SambaField<T> {
     
     private final SambaCache cache;
     private final String id;
-    private final boolean proxyInvalidationAware;
     private SambaValueProxy valueProxy;
     
     public SambaField(SambaCacheType cacheType) {
@@ -49,7 +48,6 @@ public class SambaField<T> {
     public SambaField(String id, SambaCache cache) {
         this.id = id;
         this.cache = cache;
-        this.proxyInvalidationAware = cache.doesSupportInvalidation();
         this.valueProxy = EMPTY_PROXY;
     }
     
@@ -71,31 +69,35 @@ public class SambaField<T> {
         if (value != SambaValueProxy.INVALIDATED) {
             return (T) value;
         }  
-        SambaValueProxy proxy = cache.get(id);
-        if (proxy != null) {
-            valueProxy = proxy;
-            value = valueProxy.getValue();
-            if (!proxyInvalidationAware) {
-                valueProxy.invalidateValue();
+        for (;;) {
+            value = cache.get(id);
+            if (value instanceof SambaValueProxy) {
+                SambaValueProxy proxy = (SambaValueProxy) value;
+                if (proxy != null) {
+                    valueProxy = proxy;
+                    value = valueProxy.getValue();
+                    if (value != SambaValueProxy.INVALIDATED) {
+                        return (T) value;
+                    }    
+                }
+            } else {
+                valueProxy = EMPTY_PROXY;
+                return (T) value;
             }
-            return (T) value;
-        } else {
-            valueProxy = EMPTY_PROXY;
-            return null;
-        }
+        }    
     }
     
     public void set(T value) {
         if (value == null) {
             clear();
         } else {
-            cache.put(id, toProxy(value));
+            cache.put(id, value);
         }    
         // TODO Also set proxy on update eagerly as atomic 
     }
     
     public boolean compareAndSet(T oldValue, T newValue) {
-        return cache.replace(id, toProxy(oldValue), toProxy(newValue));
+        return cache.replace(id, oldValue, newValue);
         // TODO Also set proxy on update eagerly as atomic 
     }
     
@@ -103,17 +105,26 @@ public class SambaField<T> {
         return compareAndSet(get(), newValue);
     }
     
-    private SambaValueProxy toProxy(Object value) {
-        if (value == null) {
-            return null;
-        } else {
-            return new SambaValueProxy(value);
-        }
-    }
-    
     public void clear() {
         cache.remove(id);
         // TODO Also clear proxy on update eagerly as atomic
+    }
+    
+    public T process(SambaFieldProcessor<T> processor) {
+        T currentValue = get();
+        T newValue = processor.process(currentValue);
+        set(newValue);
+        return newValue;
+    }
+    
+    public T processAtomically(SambaFieldProcessor<T> processor) {
+        for (;;) {
+            T currentValue = get();
+            T newValue = processor.process(currentValue);
+            if (compareAndSet(currentValue, newValue)) {
+                return newValue;
+            }
+        }
     }
 
     @Override

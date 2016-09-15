@@ -13,17 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package tr.com.serkanozal.samba.cache;
+package tr.com.serkanozal.samba;
 
-public interface SambaCache {
+public interface SambaFieldProcessor<T> {
 
-    SambaCacheType getType();
-    SambaCacheConsistencyModel getConsistencyModel();
-    
-    <V> V get(String key);
-    void put(String key, Object value);
-    boolean replace(String key, Object oldValue, Object newValue);
-    void remove(String key);
-    void clear();
+    T process(T currentValue);
     
 }

@@ -226,7 +226,7 @@ public class SambaGlobalCache implements SambaCache {
                             "DynamoDB table (%s) is not active yet, waiting until it is active ...", 
                             DYNAMO_DB_TABLE_NAME));
             try {
-                Thread.sleep(5000);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
             }
         } 
@@ -406,12 +406,7 @@ public class SambaGlobalCache implements SambaCache {
     public SambaCacheConsistencyModel getConsistencyModel() {
         return SambaCacheConsistencyModel.STRONG_CONSISTENCY;
     }
-    
-    @Override
-    public boolean doesSupportInvalidation() {
-        return false;
-    }
-    
+
     @Override
     public <V> V get(String key) {
         V value;
