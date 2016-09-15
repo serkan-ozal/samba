@@ -18,6 +18,7 @@ package tr.com.serkanozal.samba;
 import java.util.UUID;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import junit.framework.AssertionFailedError;
 
@@ -123,7 +124,39 @@ public abstract class BaseSambaFieldTest {
         
         ////////////////////////////////////////////////////////// 
         
-        field1.set("Value-6");
+        final AtomicBoolean createCalled1 = new AtomicBoolean(false);
+        String value1 = field1.getOrCreate(new SambaValueFactory<String>() {
+            @Override
+            public void destroy(String value) {
+            }
+            
+            @Override
+            public String create() {
+                createCalled1.set(true);
+                return "Value-6";
+            }
+        }); 
+        Assert.assertTrue(createCalled1.get());
+        Assert.assertEquals("Value-6", value1);
+        Assert.assertEquals("Value-6", field1.get());
+        Assert.assertEquals("Value-6", field2.refresh());
+        
+        ////////////////////////////////////////////////////////// 
+        
+        final AtomicBoolean createCalled2 = new AtomicBoolean(false);
+        String value2 = field1.getOrCreate(new SambaValueFactory<String>() {
+            @Override
+            public void destroy(String value) {
+            }
+            
+            @Override
+            public String create() {
+                createCalled2.set(true);
+                return "Value-7";
+            }
+        }); 
+        Assert.assertFalse(createCalled2.get());
+        Assert.assertEquals("Value-6", value2);
         Assert.assertEquals("Value-6", field1.get());
         Assert.assertEquals("Value-6", field2.refresh());
         
