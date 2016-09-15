@@ -35,20 +35,27 @@ import tr.com.serkanozal.samba.cache.SambaCacheType;
 public abstract class BaseSambaFieldTest {
 
     protected SambaCacheType cacheType;
-    protected SambaCache cache;
+    protected SambaCache cache1;
+    protected SambaCache cache2;
     
     @Before
     public void setup() {
         cacheType = getCacheType();
-        cache = SambaCacheProvider.getCache(cacheType);
-        cache.clear();
+        cache1 = SambaCacheProvider.createCache(cacheType);
+        cache1.clear();
+        cache2 = cacheType != SambaCacheType.LOCAL 
+                    ? SambaCacheProvider.createCache(cacheType)
+                    : cache1;
+        cache2.clear();
     }
     
     @After
     public void tearDown() {
-        cache.clear();
         cacheType = null;
-        cache = null;
+        cache1.clear();
+        cache1 = null;
+        cache2.clear();
+        cache2 = null;
     }
     
     protected abstract SambaCacheType getCacheType();
@@ -56,8 +63,8 @@ public abstract class BaseSambaFieldTest {
     @Test
     public void test_fieldConsistency() {
         String fieldId = UUID.randomUUID().toString();
-        SambaField<String> field1 = new SambaField<String>(fieldId, cache);
-        SambaField<String> field2 = new SambaField<String>(fieldId, cache);
+        SambaField<String> field1 = new SambaField<String>(fieldId, cache1);
+        SambaField<String> field2 = new SambaField<String>(fieldId, cache2);
         
         ////////////////////////////////////////////////////////// 
         
@@ -162,7 +169,13 @@ public abstract class BaseSambaFieldTest {
         
         ////////////////////////////////////////////////////////// 
         
-        cache.clear();
+        cache1.clear();
+        Assert.assertNull(field1.get());
+        checkConsistency(field2, null);
+        
+        //////////////////////////////////////////////////////////
+                
+        cache2.clear();
         Assert.assertNull(field1.get());
         checkConsistency(field2, null);
     }
@@ -170,8 +183,8 @@ public abstract class BaseSambaFieldTest {
     @Test
     public void test_fieldProcessor() {
         String fieldId = UUID.randomUUID().toString();
-        SambaField<Integer> field1 = new SambaField<Integer>(fieldId, cache);
-        SambaField<Integer> field2 = new SambaField<Integer>(fieldId, cache);
+        SambaField<Integer> field1 = new SambaField<Integer>(fieldId, cache1);
+        SambaField<Integer> field2 = new SambaField<Integer>(fieldId, cache2);
         
         ////////////////////////////////////////////////////////// 
         
@@ -203,8 +216,8 @@ public abstract class BaseSambaFieldTest {
     @Test
     public void test_atomicFieldProcessor() throws InterruptedException {
         String fieldId = UUID.randomUUID().toString();
-        SambaField<Integer> field1 = new SambaField<Integer>(fieldId, cache);
-        SambaField<Integer> field2 = new SambaField<Integer>(fieldId, cache);
+        SambaField<Integer> field1 = new SambaField<Integer>(fieldId, cache1);
+        SambaField<Integer> field2 = new SambaField<Integer>(fieldId, cache2);
         
         ////////////////////////////////////////////////////////// 
         

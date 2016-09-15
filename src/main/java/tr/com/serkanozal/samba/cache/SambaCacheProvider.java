@@ -47,4 +47,18 @@ public class SambaCacheProvider {
         return cache;
     }
     
+    public static SambaCache createCache(SambaCacheType cacheType) {
+        switch (cacheType) {
+            case LOCAL:
+                return new SambaLocalCache();
+            case GLOBAL:
+                return new SambaGlobalCache();
+            case TIERED:
+                return new SambaTieredCache();
+            default:
+                throw new IllegalArgumentException("Unknow cache type: " + cacheType + 
+                        "! Valid values are " + Arrays.asList(SambaCacheType.values()));
+        }
+    }
+    
 }
