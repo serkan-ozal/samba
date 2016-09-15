@@ -22,7 +22,7 @@ import tr.com.serkanozal.samba.cache.SambaCacheConsistencyModel;
 import tr.com.serkanozal.samba.cache.SambaCacheProvider;
 import tr.com.serkanozal.samba.cache.SambaCacheType;
 
-public class SambaField<T> {
+public class SambaField<V> {
 
     private static final SambaValueProxy EMPTY_PROXY = 
             new SambaValueProxy(SambaValueProxy.INVALIDATED);
@@ -64,10 +64,10 @@ public class SambaField<T> {
     }
     
     @SuppressWarnings("unchecked")
-    public T get() {
+    public V get() {
         Object value = valueProxy.getValue();
         if (value != SambaValueProxy.INVALIDATED) {
-            return (T) value;
+            return (V) value;
         }  
         for (;;) {
             value = cache.get(id);
@@ -77,18 +77,38 @@ public class SambaField<T> {
                     valueProxy = proxy;
                     value = valueProxy.getValue();
                     if (value != SambaValueProxy.INVALIDATED) {
-                        return (T) value;
+                        return (V) value;
                     }    
                 }
             } else {
                 valueProxy = EMPTY_PROXY;
-                return (T) value;
+                return (V) value;
             }
         }    
     }
     
+    public V getOrCreate(SambaValueFactory<V> factory) {
+        V value = get();
+        if (value != null) {
+            return value;
+        } else {
+            V createdValue = factory.create();
+            for (;;) {
+                if (compareAndSet(null, createdValue)) {
+                    return createdValue;
+                } else {
+                    value = refresh();
+                    if (value != null) {
+                        factory.destroy(createdValue);
+                        return value;
+                    }
+                }
+            }    
+        }
+    }
+     
     @SuppressWarnings("unchecked")
-    public T refresh() {
+    public V refresh() {
         valueProxy = EMPTY_PROXY;
         for (;;) {
             Object value = cache.refresh(id);
@@ -98,17 +118,17 @@ public class SambaField<T> {
                     valueProxy = proxy;
                     value = valueProxy.getValue();
                     if (value != SambaValueProxy.INVALIDATED) {
-                        return (T) value;
+                        return (V) value;
                     }    
                 }
             } else {
                 valueProxy = EMPTY_PROXY;
-                return (T) value;
+                return (V) value;
             }
         }    
     }
     
-    public void set(T value) {
+    public void set(V value) {
         if (value == null) {
             clear();
         } else {
@@ -117,12 +137,12 @@ public class SambaField<T> {
         // TODO Also set proxy on update eagerly as atomic 
     }
     
-    public boolean compareAndSet(T oldValue, T newValue) {
+    public boolean compareAndSet(V oldValue, V newValue) {
         return cache.replace(id, oldValue, newValue);
         // TODO Also set proxy on update eagerly as atomic 
     }
     
-    public boolean compareAndSet(T newValue) {
+    public boolean compareAndSet(V newValue) {
         return compareAndSet(get(), newValue);
     }
     
@@ -131,17 +151,17 @@ public class SambaField<T> {
         // TODO Also clear proxy on update eagerly as atomic
     }
     
-    public T process(SambaFieldProcessor<T> processor) {
-        T currentValue = get();
-        T newValue = processor.process(currentValue);
+    public V process(SambaFieldProcessor<V> processor) {
+        V currentValue = get();
+        V newValue = processor.process(currentValue);
         set(newValue);
         return newValue;
     }
     
-    public T processAtomically(SambaFieldProcessor<T> processor) {
-        T currentValue = get();
+    public V processAtomically(SambaFieldProcessor<V> processor) {
+        V currentValue = get();
         for (;;) {
-            T newValue = processor.process(currentValue);
+            V newValue = processor.process(currentValue);
             if (compareAndSet(currentValue, newValue)) {
                 return newValue;
             }
