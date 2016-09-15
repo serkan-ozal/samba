@@ -83,9 +83,12 @@ SambaField myTieredCacheBackedField = new SambaField(SambaCacheType.TIERED);
 
 There are three basic functionalities over `SambaField` field:
 * **Get:** Gets the shared state/value of the field. The functionality is invoked via `get()` call over `SambaField` field.
+* **Refresh:** Gets the fresh shared state/value of the field. This functionality is used for ensuring **strong consistency** while reading. For **strong consistent** caches (`LOCAL` and `GLOBAL`), refresh functionality is equal get functionality, but for **eventually consistent** caches (`TIERED`), it means consistent read by retrieving data from `GLOBAL` cache by bypassing `LOCAL` cache. The functionality is invoked via `refresh()` call over `SambaField` field.
 * **Set:** Sets the shared state/value of the field. The functionality is invoked via `set(T value)` call over `SambaField` field.
 * **Compare-and-Set:** Compares and sets the shared state/value of the field atomically if and only if the current field value is equal to given old value. If replacement has succeeded, returns `true`, otherwise `false`. The functionality is invoked over `SambaField` field via `compareAndSet(T oldValue, T newValue)` if old value is specified explicitly or via `compareAndSet(T newValue)` if current value is assumed to be used as old value.
 * **Clear:** Clears the shared state/value of the field. The functionality is invoked via `clear()` call over `SambaField` field.
+* **Process:** `SambaFieldProcessor` instance takes current value of the field and after some process logic returns new value for the field. Then this returned value is set to field. Note that this is not atomic operation so multiple processors on the same field might override themselves. The functionality is invoked via `process(SambaFieldProcessor processor)` call over `SambaField` field.
+* **Process Atomically:** For this atomic version of the process functionality, the new value (output of processor) is set if and only if current value is the same with the value passed into processor. If setting new value succeeds, call returns. Otherwise processor is called multiple times with fresh values of field until it succeeds. The functionality is invoked via `processAtomically(SambaFieldProcessor processor)` call over `SambaField` field.
 
 ``` java
 // Assume that we are using caches (LOCAL or GLOBAL but not TIERED) 
