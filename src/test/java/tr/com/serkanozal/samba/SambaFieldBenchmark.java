@@ -36,7 +36,7 @@ public class SambaFieldBenchmark {
         for (SambaCacheType cacheType : CACHE_TYPES) {
             runBenchmark(cacheType);
         }
-	}
+    }
 
     @SuppressWarnings("unchecked")
     private static void runBenchmark(SambaCacheType cacheType) throws InterruptedException {
