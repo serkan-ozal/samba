@@ -78,8 +78,8 @@ public class SambaTieredCache implements SambaCache {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <V> V get(String key) {
-        V value = (V) nearCache.get(key);
+    public Object get(String key) {
+        Object value = nearCache.get(key);
         if (value != null) {
             return value;
         }
