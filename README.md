@@ -116,6 +116,12 @@ myField.clear();
 value = myField.get(); // value is null
 ```
 
-5. Roadmap
+5. Benchmark
+==============
+At low mutation rate (mutate per second), **Samba** was able to achieved **ONE BILLION** !!! (note that not one million) get throughput per second with **strong** (for `LOCAL` cache) or **eventual** (for `TIERED` cache) consistency models on my machine with its **3-level** (field <-> local <-> remote) field caching infrastructure. 
+
+You might try your [own](https://github.com/serkan-ozal/samba/blob/master/src/test/java/tr/com/serkanozal/samba/SambaFieldBenchmark.java)
+
+6. Roadmap
 ==============
 * Ability to intercept specified (via programmatic and/or declarative configuration) field accesses at bytecode level and handle them through `SambaField` automatically.
