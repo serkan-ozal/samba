@@ -6,6 +6,7 @@ In general **Samba** is a very simple caching library with very basit caching fu
 
 Eventhough **Samba** can be useful for many cases as simple caching layer, at first, it is aimed to be used at AWS's **Lambda** service for sharing state/information between different Lambda function invocations whether on the same container (process) or another container (process/machine). See [here](https://aws.amazon.com/blogs/compute/container-reuse-in-lambda/) and [here](https://www.linkedin.com/pulse/aws-lambda-container-lifetime-config-refresh-frederik-willaert) for more details.
 
+Here are the [demos](https://github.com/serkan-ozal/samba-aws-lambda-demo).
 
 2. Installation
 ==============
