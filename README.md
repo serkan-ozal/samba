@@ -82,7 +82,7 @@ SambaField myGlobalCacheBackedField = new SambaField(SambaCacheType.GLOBAL);
 SambaField myTieredCacheBackedField = new SambaField(SambaCacheType.TIERED);
 ```
 
-There are three basic functionalities over `SambaField` field:
+Here are the basic functionalities over `SambaField` field:
 * **Get:** Gets the shared state/value of the field. The functionality is invoked via `get()` call over `SambaField` field.
 * **Get-or-Create:** Gets the shared state/value of the field if it is exist, otherwise creates new one through given `SambaValueFactory::create()` and sets it atomically if and only if current value is not exist. If setting ncreated value (created via `SambaValueFactory::create()`) fails due to already existing value (at first value is not exist but in the meantime while new instance is being created, another value is set concurrently), existing value is returned and locally created value is destroyed via `SambaValueFactory::destroy(V value)`. The functionality is invoked via `getOrCreate(SambaValueFactory<V> factory)` call over `SambaField` field.
 * **Refresh:** Gets the fresh shared state/value of the field. This functionality is used for ensuring **strong consistency** while reading. For **strong consistent** caches (`LOCAL` and `GLOBAL`), refresh functionality is equal get functionality, but for **eventually consistent** caches (`TIERED`), it means consistent read by retrieving data from `GLOBAL` cache by bypassing `LOCAL` cache. The functionality is invoked via `refresh()` call over `SambaField` field.
