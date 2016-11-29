@@ -59,6 +59,8 @@ These properties can be specified as system property or can be given from **`aws
 * **`cache.global.readCapacityPerSecond:`** Configures expected maxiumum read capacity to provision required throughput from AWS's **DynamoDB**. Default value is `1000`.
 * **`cache.global.writeCapacityPerSecond:`** Configures expected maxiumum write capacity to provision required throughput from AWS's **DynamoDB**. Default value is `100`.
 
+These properties can be specified as system property or can be given from **`samba.properties`** configuration file.
+
 4. Usage
 ==============
 The contact point for the user is `SambaField`. There is one-to-one relationship between the `SambaField` instance and the value/property that you want to access/share statefully. 
