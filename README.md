@@ -1,5 +1,5 @@
-1. What is Samba?
-==============
+# 1. What is Samba?
+
 In general **Samba** is a very simple caching library with very basit caching functionalities (get, put, replace, remove) to be used as local, global or tiered (local + global). 
 
 **Samba** is designed for non-blocking cache access with lock-free algorithms from stratch. Therefore, being high-performant is one of the its major requirements. In addition, keeping its strong/eventual consistency model promise its another major requirement.
@@ -8,8 +8,8 @@ Eventhough **Samba** can be useful for many cases as simple caching layer, at fi
 
 Here are the [demos](https://github.com/serkan-ozal/samba-aws-lambda-demo).
 
-2. Installation
-==============
+# 2. Installation
+
 In your `pom.xml`, you must add repository and dependency for **Samba**. 
 You can change `samba.version` to any existing **Samba** library version.
 Latest version of **Samba** is `1.0-SNAPSHOT`.
@@ -43,26 +43,25 @@ Latest version of **Samba** is `1.0-SNAPSHOT`.
 ...
 ```
 
-3. Configuration
-==============
+# 3. Configuration
 
-3.1. AWS Credentials
---------------
+## 3.1. AWS Credentials
+
 * **`aws.accessKey:`** Your AWS access key
 * **`aws.secretKey:`** Your AWS secret key
 
 These properties can be specified as system property or can be given from **`aws-credentials.properties`** configuration file.
 
-3.2. Samba Configurations
---------------
+## 3.2. Samba Configurations
+
 * **`cache.global.tableName:`** Configures name of the table on AWS's **DynamoDB** to store cache entries as global cache. Default value is `___SambaGlobalCache___`.
 * **`cache.global.readCapacityPerSecond:`** Configures expected maxiumum read capacity to provision required throughput from AWS's **DynamoDB**. Default value is `1000`.
 * **`cache.global.writeCapacityPerSecond:`** Configures expected maxiumum write capacity to provision required throughput from AWS's **DynamoDB**. Default value is `100`.
 
 These properties can be specified as system property or can be given from **`samba.properties`** configuration file.
 
-4. Usage
-==============
+# 4. Usage
+
 The contact point for the user is `SambaField`. There is one-to-one relationship between the `SambaField` instance and the value/property that you want to access/share statefully. 
 
 There are three types of cache to be used as backend of `SambaField`:
@@ -118,12 +117,12 @@ myField.clear();
 value = myField.get(); // value is null
 ```
 
-5. Benchmark
-==============
+# 5. Benchmark
+
 At low mutation rate (mutate per second), **Samba** was able to achieved **ONE BILLION** !!! (note that not one million) get throughput per second with **strong** (for `LOCAL` cache) or **eventual** (for `TIERED` cache) consistency models on my machine with its **3-level** (field <-> local <-> remote) field caching infrastructure. 
 
 You might try your [own](https://github.com/serkan-ozal/samba/blob/master/src/test/java/tr/com/serkanozal/samba/SambaFieldBenchmark.java)
 
-6. Roadmap
-==============
+# 6. Roadmap
+
 * Ability to intercept specified (via programmatic and/or declarative configuration) field accesses at bytecode level and handle them through `SambaField` automatically.
